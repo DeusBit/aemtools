@@ -50,9 +50,7 @@ class HtlAttributeDescriptor(val attributeName: String, val parentTag: XmlTag)
 
     override fun isRequired(): Boolean = false
 
-    override fun hasIdRefType(): Boolean {
-        return false
-    }
+    override fun hasIdRefType(): Boolean = false
 
     override fun init(element: PsiElement?) {
     }

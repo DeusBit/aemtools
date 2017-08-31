@@ -162,7 +162,10 @@
         <xml.attributeDescriptorsProvider
                 order="first"
                 implementation="com.aemtools.findusages.HtlAttributesDescriptorsProvider" />
-        
+
+        <xml.attributeDescriptorsProvider
+                implementation="com.aemtools.lang.reppolicy.psi.descriptor.RepPolicyAttributeDescriptor"/>
+
         <lang.psiStructureViewFactory language="Htl"
                                       implementationClass="com.aemtools.ide.HtlStructureViewProvider"/>
 
