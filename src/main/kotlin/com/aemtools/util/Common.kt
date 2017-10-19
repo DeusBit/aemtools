@@ -11,6 +11,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.impl.local.LocalFileSystemBase
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiManager
@@ -18,6 +19,10 @@ import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.refactoring.RefactoringBundle
 import com.intellij.refactoring.util.CommonRefactoringUtil
+import com.intellij.util.indexing.FileBasedIndex
+import com.intellij.util.indexing.ID
+import org.apache.commons.lang.StringUtils
+import java.io.Serializable
 
 /**
  * Some common IDEA Open API methods
@@ -26,59 +31,67 @@ import com.intellij.refactoring.util.CommonRefactoringUtil
  */
 object OpenApiUtil {
 
-    /**
-     * Checks if given element is withing selection. Should be invoked from **Dispatch Thread**.
-     */
-    fun isCurrentElementSelected(element: PsiElement): Boolean {
-
-        val editor: Editor = FileEditorManager
-                .getInstance(element.project)
-                .selectedTextEditor
-                ?: return false
-        val selectionModel = editor.selectionModel
-        if (!selectionModel.hasSelection()) {
-            return false
-        }
-        val selectedText = selectionModel.selectedText
-
-        return element.text.contains(selectedText as CharSequence)
+  /**
+   * Checks if given element is withing selection. Should be invoked from **Dispatch Thread**.
+   */
+  fun isCurrentElementSelected(element: PsiElement): Boolean {
+    val editor: Editor = FileEditorManager
+        .getInstance(element.project)
+        .selectedTextEditor
+        ?: return false
+    val selectionModel = editor.selectionModel
+    if (!selectionModel.hasSelection()) {
+      return false
     }
+    val selectedText = selectionModel.selectedText
 
-    fun isCurrentThreadIsDispatch(): Boolean
-            = ApplicationManager.getApplication().isDispatchThread
+    return element.text.contains(selectedText as CharSequence)
+  }
 
-    /**
-     * Check if current IDEA process is executed within a test.
-     *
-     * @return *true* is current app is running in test
-     */
-    fun iAmTest(): Boolean = ApplicationManager.getApplication().isUnitTestMode
+  /**
+   * Check if current thread is dispatch thread.
+   *
+   * @see [ApplicationManager]
+   * @see [com.intellij.openapi.application.Application.isDispatchThread]
+   * @return *true* if current thread is dispatch thread, *false* otherwise
+   */
+  fun isCurrentThreadIsDispatch(): Boolean
+      = ApplicationManager.getApplication().isDispatchThread
 
-    /**
-     * Find [VirtualFile] by full file path.
-     *
-     * @param path path to file
-     * @return instance of VirtualFile, *null* if no file was found by given path
-     */
-    fun findFileByPath(path: String): VirtualFile? {
-        return LocalFileSystemBase.getInstance().findFileByPath(path)
-    }
+  /**
+   * Check if current IDEA process is executed within a test.
+   *
+   * @see [ApplicationManager]
+   * @see [com.intellij.openapi.application.Application.isUnitTestMode]
+   * @return *true* is current app is running in test, *false* otherwise
+   */
+  fun iAmTest(): Boolean = ApplicationManager.getApplication().isUnitTestMode
 
-    /**
-     * Find [VirtualFile] by project relative path.
-     *
-     * @param project the project
-     * @param relativePath the path
-     * @return instance of VirtualFile, *null* if no file was found by given path
-     */
-    fun findFileByRelativePath(relativePath: String, project: Project): VirtualFile? {
-        val files = FilenameIndex.getFilesByName(
-                project,
-                relativePath.substringAfterLast("/"),
-                GlobalSearchScope.projectScope(project))
-        return files.find { it.virtualFile.path.endsWith(relativePath) }
-                ?.virtualFile
-    }
+  /**
+   * Find [VirtualFile] by full file path.
+   *
+   * @param path path to file
+   * @return instance of VirtualFile, *null* if no file was found by given path
+   */
+  fun findFileByPath(path: String): VirtualFile? {
+    return LocalFileSystemBase.getInstance().findFileByPath(path)
+  }
+
+  /**
+   * Find [VirtualFile] by project relative path.
+   *
+   * @param project the project
+   * @param relativePath the path
+   * @return instance of VirtualFile, *null* if no file was found by given path
+   */
+  fun findFileByRelativePath(relativePath: String, project: Project): VirtualFile? {
+    val files = FilenameIndex.getFilesByName(
+        project,
+        relativePath.substringAfterLast("/"),
+        GlobalSearchScope.projectScope(project))
+    return files.find { it.virtualFile.path.endsWith(relativePath) }
+        ?.virtualFile
+  }
 
 }
 
@@ -89,13 +102,13 @@ object OpenApiUtil {
  * @see WriteCommandAction
  * @see WriteCommandAction.Simple
  */
-fun writeCommand(project: Project, lambda: () -> Unit): Unit {
-    object : WriteCommandAction.Simple<Any>(project) {
-        override fun run() {
-            lambda.invoke()
-        }
+fun writeCommand(project: Project, lambda: () -> Unit) {
+  object : WriteCommandAction.Simple<Any>(project) {
+    override fun run() {
+      lambda.invoke()
+    }
 
-    }.execute().resultObject
+  }.execute().resultObject
 }
 
 /**
@@ -105,13 +118,13 @@ fun writeCommand(project: Project, lambda: () -> Unit): Unit {
  * @return *true* if current string is valid htl attribute name, *false* otherwise
  */
 fun String.isHtlAttributeName(): Boolean = when (this.substringBefore(".")) {
-    in DECLARATION_ATTRIBUTES -> {
-        DECLARATION_ATTRIBUTES.any { it == this || this.startsWith("$it.") }
-    }
-    in SINGLE_ATTRIBUTES -> {
-        SINGLE_ATTRIBUTES.any { it == this }
-    }
-    else -> false
+  in DECLARATION_ATTRIBUTES -> {
+    DECLARATION_ATTRIBUTES.any { it == this || this.startsWith("$it.") }
+  }
+  in SINGLE_ATTRIBUTES -> {
+    SINGLE_ATTRIBUTES.any { it == this }
+  }
+  else -> false
 }
 
 /**
@@ -123,7 +136,7 @@ fun String.isHtlAttributeName(): Boolean = when (this.substringBefore(".")) {
  * @return [PrioritizedLookupElement] with given priority
  */
 fun LookupElement.withPriority(priority: Double): LookupElement =
-        PrioritizedLookupElement.withPriority(this, priority)
+    PrioritizedLookupElement.withPriority(this, priority)
 
 /**
  * Get priority of current lookup element if available.
@@ -134,9 +147,9 @@ fun LookupElement.withPriority(priority: Double): LookupElement =
  * _null_ if current element is not instance of [PrioritizedLookupElement]
  */
 fun LookupElement.priority(): Double? = if (this is PrioritizedLookupElement<*>) {
-    this.priority
+  this.priority
 } else {
-    null
+  null
 }
 
 /**
@@ -147,7 +160,7 @@ fun LookupElement.priority(): Double? = if (this is PrioritizedLookupElement<*>)
  * @return [PrioritizedLookupElement] with given proximity
  */
 fun LookupElement.withProximity(proximity: Int) =
-        PrioritizedLookupElement.withExplicitProximity(this, proximity)
+    PrioritizedLookupElement.withExplicitProximity(this, proximity)
 
 /**
  * Convert current [String] to [StringBuilder].
@@ -156,6 +169,29 @@ fun LookupElement.withProximity(proximity: Int) =
  * @return new string builder instance that contains current string
  */
 fun String.toStringBuilder() = StringBuilder(this)
+
+/**
+ * Get Levenshtein distance between current string and the other.
+ *
+ * @param other the string to calculate distance with
+ * @receiver [String]
+ * @see [StringUtils.getLevenshteinDistance]
+ * @return the distance
+ */
+fun String.distanceTo(other: String): Int =
+    StringUtils.getLevenshteinDistance(this, other)
+
+/**
+ * Find the string with the smallest levenshtein distance relative to current string
+ * from set of given strings.
+ *
+ * @param others other strings
+ * @receiver [String]
+ * @see [distanceTo]
+ * @return the closest element, *null* in case if given set is empty
+ */
+fun String.closest(others: Set<String>): String? =
+    others.minBy { this.distanceTo(it) }
 
 /**
  * Get [PsiFileFactory] associated with current project.
@@ -174,6 +210,14 @@ fun Project.psiFileFactory(): PsiFileFactory = PsiFileFactory.getInstance(this)
 fun Project.psiManager(): PsiManager = PsiManager.getInstance(this)
 
 /**
+ * Get [PsiDocumentManager] associated with current project.
+ *
+ * @receiver [Project]
+ * @return instance of psi document manager
+ */
+fun Project.psiDocumentManager(): PsiDocumentManager = PsiDocumentManager.getInstance(this)
+
+/**
  * Get [GlobalSearchScope] associated with current project.
  *
  * @receiver [Project]
@@ -189,11 +233,34 @@ fun Project.allScope(): GlobalSearchScope = GlobalSearchScope.allScope(this)
  * @param message the message
  */
 fun showErrorMessage(project: Project, editor: Editor?, message: String) {
-    CommonRefactoringUtil.showErrorHint(
-            project,
-            editor,
-            message,
-            RefactoringBundle.message("rename.title"),
-            null
-    )
+  CommonRefactoringUtil.showErrorHint(
+      project,
+      editor,
+      message,
+      RefactoringBundle.message("rename.title"),
+      null
+  )
+}
+
+/**
+ * Reads all values from file based index with given [ID].
+ *
+ * @param MODEL the model type
+ *
+ * @param indexId the index id
+ * @param project the project
+ * @param scope global search scope, [allScope] by default
+ *
+ * @see [FileBasedIndex], [ID]
+ *
+ * @return collection of all models stored under given index id
+ */
+inline fun <reified MODEL : Serializable> allFromFbi(indexId: ID<String, MODEL>,
+                                                     project: Project,
+                                                     scope: GlobalSearchScope = project.allScope())
+    : List<MODEL> = FileBasedIndex.getInstance().let { fbi ->
+  fbi.getAllKeys(indexId, project)
+      .flatMap {
+        fbi.getValues(indexId, it, scope)
+      }
 }

@@ -11,18 +11,24 @@ import java.lang.reflect.Type
 /**
  * @author Dmytro_Troynikov
  */
-class XmlTagDefinitionDeserializer : JsonDeserializer<XmlTagDefinition>{
-    override fun deserialize(json: JsonElement?, typeOfT: Type?,
-                             context: JsonDeserializationContext?): XmlTagDefinition? {
+class XmlTagDefinitionDeserializer : JsonDeserializer<XmlTagDefinition> {
+  override fun deserialize(json: JsonElement?, typeOfT: Type?,
+                           context: JsonDeserializationContext?): XmlTagDefinition? {
 
-        val jsonObject = json as JsonObject
+    val jsonObject = json as JsonObject
 
-        return XmlTagDefinition(
-                jsonObject.get("nodeName")?.asString ?: "",
-                jsonObject.get("childNodes")?.asJsonArray?.map { it.asString } ?: listOf(),
-                jsonObject.get("attributes")?.asJsonArray?.map { XmlAttributeDefinitionDeserializer().deserialize(it as JsonElement, null, null) as XmlAttributeDefinition }.orEmpty()
-        )
+    return XmlTagDefinition(
+        jsonObject.get("nodeName")?.asString ?: "",
+        jsonObject.get("childNodes")?.asJsonArray?.map { it.asString } ?: listOf(),
+        jsonObject.get("attributes")?.asJsonArray?.map {
+          XmlAttributeDefinitionDeserializer().deserialize(
+              it as JsonElement,
+              null,
+              null) as XmlAttributeDefinition
+        }
+            .orEmpty()
+    )
 
-    }
+  }
 
 }
