@@ -28,6 +28,9 @@ class RepPolicyAttributeDescriptor : XmlAttributeDescriptorsProvider {
 
 }
 
+/**
+ * Rep policy attribute descriptor.
+ */
 class RepPolicyAttribute(val attributeName: String): BasicXmlAttributeDescriptor() {
     override fun getDefaultValue(): String? {
         return null
